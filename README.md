@@ -9,6 +9,15 @@
 
 <br/>
 
+## 📸 Screenshots
+
+<div align="center">
+  <img src="assets/new_tab_modern_fresh.jpg" alt="Nova Main Dashboard" width="49%">
+  <img src="assets/new_tab_home.jpg" alt="Nova Sidebar & Settings" width="49%">
+</div>
+
+<br/>
+
 ## 🚀 Overview
 
 Nova is not just a new tab page; it's a fully personalized dashboard. Built entirely with **Vanilla JavaScript, HTML, and CSS**, Nova delivers a premium, heavy-duty visual experience—featuring deep glassmorphism, dynamic RGB accent colors, and animated iOS-style UI elements—without the heavy bloat of modern web frameworks. 
