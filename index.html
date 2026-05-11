@@ -103,12 +103,15 @@
                     <h3>Manage Shortcuts</h3>
                     <div class="shortcut-manager-list" id="shortcutManagerList"></div>
                     <hr class="divider">
-                    <h3>Add New Shortcut</h3>
+                    <h3 id="shortcutFormTitle">Add New Shortcut</h3>
                     <div class="input-group">
                         <input type="text" id="newShortcutName" placeholder="Name (e.g., GitHub)">
                         <input type="url" id="newShortcutUrl" placeholder="URL (e.g., https://github.com)">
-                        <input type="text" id="newShortcutIcon" placeholder="Icon Class (e.g., ph ph-github-logo)">
-                        <button class="btn-primary" id="addShortcutBtn">Add Shortcut</button>
+                        <input type="text" id="newShortcutIcon" placeholder="Icon (Class, URL, or leave blank to auto-fetch)">
+                        <div style="display: flex; gap: 10px; margin-top: 4px;">
+                            <button class="btn-primary" id="addShortcutBtn" style="flex: 1; margin: 0;">Add Shortcut</button>
+                            <button class="btn-danger" id="cancelEditBtn" style="display: none; margin: 0; padding: 12px 20px;"><i class="ph ph-x"></i> Cancel</button>
+                        </div>
                     </div>
                 </div>
 
@@ -176,6 +179,10 @@
 
                     <h3 style="margin-top: 24px;">Grid Settings</h3>
                     <div class="toggle-group">
+                        <span>Tint Icons with Accent Color</span>
+                        <label class="switch"><input type="checkbox" id="tintIconsToggle"><span class="slider round"></span></label>
+                    </div>
+                    <div class="toggle-group">
                         <span>Show "Add Shortcut" Button</span>
                         <label class="switch"><input type="checkbox" id="showAddBtnToggle"><span class="slider round"></span></label>
                     </div>
@@ -188,6 +195,12 @@
                 <div id="wallpaperTab" class="tab-content">
                     <h3>Wallpaper Settings</h3>
                     <div class="toggle-group">
+                        <span>Enable Background Image</span>
+                        <label class="switch"><input type="checkbox" id="showWallpaperToggle"><span class="slider round"></span></label>
+                    </div>
+                    <hr class="divider" style="margin: 12px 0;">
+
+                    <div class="toggle-group">
                         <span>Daily Random Landscape</span>
                         <label class="switch"><input type="checkbox" id="autoWallpaperToggle"><span class="slider round"></span></label>
                     </div>
@@ -199,9 +212,9 @@
                         <span>Blur Wallpaper Effect</span>
                         <label class="switch"><input type="checkbox" id="blurWallpaperToggle"><span class="slider round"></span></label>
                     </div>
+                    
                     <hr class="divider">
                     <h3>Add to Library</h3>
-                    
                     <div class="modern-upload-container">
                         <div class="upload-box">
                             <i class="ph ph-link" style="font-size: 24px; color: var(--accent);"></i>
@@ -232,7 +245,6 @@
                         <label>Custom Logo (Class, URL, or Upload)</label>
                         <div style="display:flex; gap: 8px;">
                             <input type="text" id="brandLogoInput" placeholder="e.g., ph-fill ph-planet" style="flex:1;">
-                            
                             <input type="file" id="logoImageUpload" accept="image/*" class="file-input">
                             <label for="logoImageUpload" class="btn-primary" style="margin:0; padding: 12px; cursor: pointer; display: flex; align-items: center;" title="Upload Logo Image">
                                 <i class="ph ph-upload-simple" style="font-size: 18px;"></i>
@@ -249,7 +261,7 @@
                     <div class="about-container">
                         <div id="aboutLogoContainer"></div>
                         <h2 id="aboutTitleName" style="font-size: 32px; margin-top: 10px;">Nova</h2>
-                        <span style="color: var(--accent); font-weight: 600; letter-spacing: 1px;">POWER TAB V6.2</span>
+                        <span style="color: var(--accent); font-weight: 600; letter-spacing: 1px;">POWER TAB V6.5</span>
                         <p style="text-align: center; color: var(--text-muted); margin-top: 16px; line-height: 1.6; max-width: 400px;">
                             The ultimate customizable, responsive, and blazing fast glassmorphic new tab experience. Fully personalized to your workflow.
                         </p>

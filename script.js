@@ -1,18 +1,19 @@
 document.addEventListener("DOMContentLoaded", () => {
     // --- 1. Global State Engine ---
     const defaultSettings = {
-        theme: 'system', accentColor: '#005eff', sidebarOpen: true, 
+        theme: 'system', accentColor: '#005eff', sidebarOpen: false, 
         showTime: true, use24Hour: false, 
         showWeather: true, weatherLat: 30.0131, weatherLon: 31.2089, weatherCity: "Giza, Egypt",
-        blurWallpaper: true, autoWallpaper: false, refreshWallpaper: false,
+        showWallpaper: true, blurWallpaper: true, autoWallpaper: false, refreshWallpaper: false,
         brandName: 'Nova', brandLogo: 'ph-fill ph-planet',
         showGreeting: true, greetingType: 'smart', customGreetingText: 'Stay Focused!',
-        showAddBtn: true, showShortcutNames: true
+        showAddBtn: false, showShortcutNames: true, tintIcons: false
     };
 
     let savedData = JSON.parse(localStorage.getItem('nova_settings')) || {};
     let settings = { ...defaultSettings, ...savedData };
     let weatherConditionCode = 0; 
+    let editingShortcutId = null; 
     
     function hexToRgb(hex) {
         let r = 0, g = 0, b = 0;
@@ -27,7 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     function applySettings() {
-        // Theme Engine
         const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
         if (settings.theme === 'light' || (settings.theme === 'system' && prefersLight)) {
             document.body.classList.add('light-mode');
@@ -41,7 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
         document.documentElement.style.setProperty('--accent-rgb', hexToRgb(settings.accentColor));
         document.getElementById('customColorPicker').value = settings.accentColor;
 
-        // Branding Engine (Text & Smart Logo Parsing)
         document.getElementById('mainLogoText').textContent = settings.brandName;
         document.getElementById('sidebarLogoText').textContent = settings.brandName;
         document.getElementById('aboutTitleName').textContent = settings.brandName;
@@ -55,11 +54,9 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById('sidebarLogoContainer').innerHTML = sLogoHtml;
         document.getElementById('aboutLogoContainer').innerHTML = aLogoHtml;
 
-        // Sidebar Toggle (bound to body class to stop flashing)
         settings.sidebarOpen ? document.body.classList.remove('sidebar-collapsed') : document.body.classList.add('sidebar-collapsed');
         document.getElementById('sidebarOpenToggle').checked = settings.sidebarOpen;
 
-        // Widgets
         document.getElementById('timeWidget').style.display = settings.showTime ? 'flex' : 'none';
         document.getElementById('showTimeToggle').checked = settings.showTime;
         document.getElementById('timeFormatToggle').checked = settings.use24Hour;
@@ -77,12 +74,19 @@ document.addEventListener("DOMContentLoaded", () => {
         
         const grid = document.getElementById('shortcutsContainer');
         settings.showShortcutNames ? grid.classList.remove('hide-names') : grid.classList.add('hide-names');
+        settings.tintIcons ? grid.classList.add('tinted-icons') : grid.classList.remove('tinted-icons'); 
+        
         document.getElementById('showAddBtnToggle').checked = settings.showAddBtn;
         document.getElementById('showShortcutNamesToggle').checked = settings.showShortcutNames;
+        document.getElementById('tintIconsToggle').checked = settings.tintIcons; 
+        
         renderShortcuts();
 
         const overlay = document.getElementById('bgOverlay');
         settings.blurWallpaper ? overlay.classList.add('blurred') : overlay.classList.remove('blurred');
+        
+        // Update Wallpaper UI Toggles
+        document.getElementById('showWallpaperToggle').checked = settings.showWallpaper;
         document.getElementById('blurWallpaperToggle').checked = settings.blurWallpaper;
         document.getElementById('autoWallpaperToggle').checked = settings.autoWallpaper;
         document.getElementById('refreshWallpaperToggle').checked = settings.refreshWallpaper;
@@ -90,7 +94,6 @@ document.addEventListener("DOMContentLoaded", () => {
         updateTime(); 
         updateGreeting();
 
-        // Release the preload lock after applying styles to prevent flash
         setTimeout(() => document.body.classList.remove('preload'), 50);
     }
 
@@ -212,13 +215,18 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // --- 7. Shortcut Engine ---
-    const defaultShortcuts = [
-        { id: 1, name: 'GitHub', url: 'https://github.com', icon: 'ri-github-fill', disabled: false },
-        { id: 2, name: 'YouTube', url: 'https://youtube.com', icon: 'ph-fill ph-youtube-logo', disabled: false }
-    ];
-
-    function getShortcuts() { return JSON.parse(localStorage.getItem('nova_shortcuts')) || defaultShortcuts; }
+    function getShortcuts() { return JSON.parse(localStorage.getItem('nova_shortcuts')) || []; }
     function saveShortcuts(arr) { localStorage.setItem('nova_shortcuts', JSON.stringify(arr)); renderShortcuts(); }
+
+    function resetShortcutForm() {
+        editingShortcutId = null;
+        document.getElementById('shortcutFormTitle').textContent = 'Add New Shortcut';
+        document.getElementById('newShortcutName').value = '';
+        document.getElementById('newShortcutUrl').value = '';
+        document.getElementById('newShortcutIcon').value = '';
+        document.getElementById('addShortcutBtn').innerHTML = 'Add Shortcut';
+        document.getElementById('cancelEditBtn').style.display = 'none';
+    }
 
     function renderShortcuts() {
         const grid = document.getElementById('shortcutsContainer');
@@ -232,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 let iconHtml = `<span>${sc.name.charAt(0)}</span>`; 
                 if (sc.icon) {
                     if (sc.icon.includes('.') || sc.icon.startsWith('http') || sc.icon.startsWith('data:image')) {
-                        iconHtml = `<img src="${sc.icon}" style="width:24px; height:24px; border-radius:4px;">`;
+                        iconHtml = `<img src="${sc.icon}" style="width:28px; height:28px; border-radius:6px; object-fit: contain;">`;
                     } else if (sc.icon.includes('-') || sc.icon.includes(' ')) {
                         iconHtml = `<i class="${sc.icon}"></i>`;
                     } else {
@@ -244,18 +252,39 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             const item = document.createElement('div'); item.className = 'sm-item';
+            
+            let listIconHtml = `<i class="ph ph-link"></i>`;
+            if (sc.icon && (sc.icon.includes('.') || sc.icon.startsWith('http') || sc.icon.startsWith('data:image'))) {
+                listIconHtml = `<img src="${sc.icon}" style="width:20px; height:20px; border-radius:4px; object-fit: contain;">`;
+            } else if (sc.icon && (sc.icon.includes('-') || sc.icon.includes(' '))) {
+                listIconHtml = `<i class="${sc.icon}"></i>`;
+            }
+
             item.innerHTML = `
                 <div class="sm-info">
-                    <i class="${sc.icon || 'ph ph-link'}"></i>
+                    ${listIconHtml}
                     <span style="${sc.disabled ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${sc.name}</span>
                 </div>
                 <div class="sm-actions">
                     <button class="sm-btn toggle-btn" title="${sc.disabled ? 'Enable' : 'Disable'}"><i class="${sc.disabled ? 'ph ph-eye-slash' : 'ph ph-eye'}"></i></button>
+                    <button class="sm-btn edit-btn" title="Edit"><i class="ph ph-pencil-simple"></i></button>
                     <button class="sm-btn del" title="Delete"><i class="ph ph-trash"></i></button>
                 </div>
             `;
+            
             item.querySelector('.toggle-btn').onclick = () => { sc.disabled = !sc.disabled; saveShortcuts(scs); };
             item.querySelector('.del').onclick = () => { saveShortcuts(scs.filter(s => s.id !== sc.id)); };
+            item.querySelector('.edit-btn').onclick = () => {
+                editingShortcutId = sc.id;
+                document.getElementById('shortcutFormTitle').textContent = 'Edit Shortcut';
+                document.getElementById('newShortcutName').value = sc.name;
+                document.getElementById('newShortcutUrl').value = sc.url;
+                document.getElementById('newShortcutIcon').value = sc.icon || '';
+                document.getElementById('addShortcutBtn').innerHTML = '<i class="ph ph-check"></i> Save Changes';
+                document.getElementById('cancelEditBtn').style.display = 'block';
+                document.getElementById('newShortcutName').focus(); 
+            };
+            
             list.appendChild(item);
         });
 
@@ -268,35 +297,74 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.getElementById('addShortcutBtn').onclick = () => {
-        const name = document.getElementById('newShortcutName').value;
-        let url = document.getElementById('newShortcutUrl').value;
-        const icon = document.getElementById('newShortcutIcon').value || '';
+        const name = document.getElementById('newShortcutName').value.trim();
+        let url = document.getElementById('newShortcutUrl').value.trim();
+        let icon = document.getElementById('newShortcutIcon').value.trim();
+        
         if (name && url) {
             if (!url.startsWith('http')) url = 'https://' + url;
+            
+            if (!icon) {
+                try {
+                    const domain = new URL(url).hostname;
+                    icon = `https://www.google.com/s2/favicons?domain=${domain}&sz=128`;
+                } catch(e) { icon = ''; }
+            }
+
             const scs = getShortcuts();
-            scs.push({ id: Date.now(), name, url, icon, disabled: false });
+            
+            if (editingShortcutId) {
+                const index = scs.findIndex(s => s.id === editingShortcutId);
+                if (index !== -1) {
+                    scs[index].name = name;
+                    scs[index].url = url;
+                    scs[index].icon = icon;
+                }
+            } else {
+                scs.push({ id: Date.now(), name, url, icon, disabled: false });
+            }
+            
             saveShortcuts(scs);
-            document.getElementById('newShortcutName').value = '';
-            document.getElementById('newShortcutUrl').value = '';
-            document.getElementById('newShortcutIcon').value = '';
+            resetShortcutForm();
         }
     };
 
+    document.getElementById('cancelEditBtn').onclick = resetShortcutForm;
+
     // --- 8. Wallpaper Engine ---
+    const recommendedWallpapers = [
+        'https://images.unsplash.com/photo-1506744626753-eda8151a7474?q=80&w=1920', // Default Mountains
+        'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?q=80&w=1920', // Valley
+        'https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?q=80&w=1920', // Minimalist Coast
+        'https://images.unsplash.com/photo-1519681393784-d120267933ba?q=80&w=1920'  // Starry Night
+    ];
+
     const bgContainer = document.getElementById('bgContainer');
     let savedWallpapers = [];
-    try { savedWallpapers = JSON.parse(localStorage.getItem('nova_wallpapers')) || ['https://images.unsplash.com/photo-1506744626753-eda8151a7474?q=80&w=1920']; } catch(e) { savedWallpapers = ['https://images.unsplash.com/photo-1506744626753-eda8151a7474?q=80&w=1920']; }
-    let activeWallpaper = localStorage.getItem('nova_active_wp') || savedWallpapers[0];
+    try { 
+        const stored = localStorage.getItem('nova_wallpapers');
+        savedWallpapers = stored ? JSON.parse(stored) : [...recommendedWallpapers]; 
+    } catch(e) { 
+        savedWallpapers = [...recommendedWallpapers]; 
+    }
+    let activeWallpaper = localStorage.getItem('nova_active_wp') || savedWallpapers[0] || '';
 
     function applyWallpaper() {
+        if (!settings.showWallpaper) {
+            bgContainer.style.backgroundImage = 'none';
+            return;
+        }
+
         if (settings.refreshWallpaper) {
             const randomCacheBuster = new Date().getTime();
             bgContainer.style.backgroundImage = `url('https://picsum.photos/1920/1080?random=${randomCacheBuster}')`;
         } else if (settings.autoWallpaper) {
             const today = new Date().toDateString().replace(/ /g, '');
             bgContainer.style.backgroundImage = `url('https://picsum.photos/seed/${today}/1920/1080')`;
-        } else {
+        } else if (activeWallpaper) {
             bgContainer.style.backgroundImage = `url('${activeWallpaper}')`;
+        } else {
+            bgContainer.style.backgroundImage = 'none';
         }
     }
 
@@ -305,7 +373,7 @@ document.addEventListener("DOMContentLoaded", () => {
         gallery.innerHTML = '';
         savedWallpapers.forEach((wp, index) => {
             const div = document.createElement('div');
-            div.className = `wp-card ${wp === activeWallpaper && !settings.autoWallpaper && !settings.refreshWallpaper ? 'active-wp' : ''}`;
+            div.className = `wp-card ${wp === activeWallpaper && !settings.autoWallpaper && !settings.refreshWallpaper && settings.showWallpaper ? 'active-wp' : ''}`;
             div.style.backgroundImage = `url('${wp}')`;
             
             const delBtn = document.createElement('button'); delBtn.className = 'delete-wp'; delBtn.innerHTML = '<i class="ph ph-trash"></i>';
@@ -314,13 +382,20 @@ document.addEventListener("DOMContentLoaded", () => {
                 localStorage.setItem('nova_wallpapers', JSON.stringify(savedWallpapers));
                 if (wp === activeWallpaper && savedWallpapers.length > 0) {
                     activeWallpaper = savedWallpapers[0]; localStorage.setItem('nova_active_wp', activeWallpaper); applyWallpaper();
+                } else if (savedWallpapers.length === 0) {
+                    activeWallpaper = '';
+                    applyWallpaper();
                 }
                 renderWallpaperGallery();
             };
 
             div.onclick = () => {
                 activeWallpaper = wp; 
-                settings.autoWallpaper = false; settings.refreshWallpaper = false;
+                settings.autoWallpaper = false; 
+                settings.refreshWallpaper = false;
+                settings.showWallpaper = true; // Turn back on if they click an image
+                document.getElementById('showWallpaperToggle').checked = true;
+                
                 localStorage.setItem('nova_active_wp', wp); 
                 saveSettings(); applyWallpaper(); renderWallpaperGallery();
             };
@@ -328,15 +403,20 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    document.getElementById('showWallpaperToggle').onchange = (e) => { 
+        settings.showWallpaper = e.target.checked; 
+        saveSettings(); applyWallpaper(); renderWallpaperGallery(); 
+    };
+
     document.getElementById('autoWallpaperToggle').onchange = (e) => { 
         settings.autoWallpaper = e.target.checked; 
-        if (settings.autoWallpaper) settings.refreshWallpaper = false;
+        if (settings.autoWallpaper) { settings.refreshWallpaper = false; settings.showWallpaper = true; }
         saveSettings(); applyWallpaper(); renderWallpaperGallery(); 
     };
 
     document.getElementById('refreshWallpaperToggle').onchange = (e) => { 
         settings.refreshWallpaper = e.target.checked; 
-        if (settings.refreshWallpaper) settings.autoWallpaper = false;
+        if (settings.refreshWallpaper) { settings.autoWallpaper = false; settings.showWallpaper = true; }
         saveSettings(); applyWallpaper(); renderWallpaperGallery(); 
     };
     
@@ -381,8 +461,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     document.getElementById('settingsBtn').onclick = () => openSettings();
-    document.getElementById('closeSettings').onclick = () => modal.style.display = 'none';
-    window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; };
+    document.getElementById('closeSettings').onclick = () => { 
+        modal.style.display = 'none'; 
+        resetShortcutForm(); 
+    };
+    window.onclick = (e) => { 
+        if (e.target == modal) {
+            modal.style.display = 'none';
+            resetShortcutForm();
+        }
+    };
     document.querySelectorAll('.tab-btn').forEach(btn => btn.onclick = () => openSettings(btn.getAttribute('data-tab')));
 
     document.querySelectorAll('.theme-card').forEach(card => {
@@ -392,21 +480,18 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('sidebarToggle').onclick = () => { settings.sidebarOpen = !settings.sidebarOpen; saveSettings(); };
     document.getElementById('sidebarOpenToggle').onchange = (e) => { settings.sidebarOpen = e.target.checked; saveSettings(); };
     
-    // Greeting Listeners
     document.getElementById('showGreetingToggle').onchange = (e) => { settings.showGreeting = e.target.checked; saveSettings(); };
     document.getElementById('greetingTypeSelect').onchange = (e) => { settings.greetingType = e.target.value; saveSettings(); };
     document.getElementById('customGreetingInput').oninput = (e) => { settings.customGreetingText = e.target.value; saveSettings(); };
     
-    // Time & Weather Listeners
     document.getElementById('showTimeToggle').onchange = (e) => { settings.showTime = e.target.checked; saveSettings(); };
     document.getElementById('timeFormatToggle').onchange = (e) => { settings.use24Hour = e.target.checked; saveSettings(); };
     document.getElementById('showWeatherToggle').onchange = (e) => { settings.showWeather = e.target.checked; saveSettings(); };
     
-    // Grid Setup
     document.getElementById('showAddBtnToggle').onchange = (e) => { settings.showAddBtn = e.target.checked; saveSettings(); };
     document.getElementById('showShortcutNamesToggle').onchange = (e) => { settings.showShortcutNames = e.target.checked; saveSettings(); };
+    document.getElementById('tintIconsToggle').onchange = (e) => { settings.tintIcons = e.target.checked; saveSettings(); }; 
 
-    // Branding Setup
     const randomNames = ["Nexus", "Aura", "Zenith", "Orbit", "Pulse", "Vortex", "Stellar", "Horizon", "WebDock", "PyOS"];
     document.getElementById('randomNameBtn').onclick = () => {
         settings.brandName = randomNames[Math.floor(Math.random() * randomNames.length)];
@@ -415,14 +500,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('brandNameInput').oninput = (e) => { settings.brandName = e.target.value || "Nova"; saveSettings(); };
     document.getElementById('brandLogoInput').oninput = (e) => { settings.brandLogo = e.target.value || "ph-fill ph-planet"; saveSettings(); };
 
-    // Logo Upload Logic
     document.getElementById('logoImageUpload').addEventListener('change', function(e) {
         const file = e.target.files[0]; if (!file) return;
         const reader = new FileReader();
         reader.onload = function(event) {
             const img = new Image();
             img.onload = function() {
-                const canvas = document.createElement('canvas'); const MAX_SIZE = 128; // Keep logo tiny
+                const canvas = document.createElement('canvas'); const MAX_SIZE = 128;
                 let width = img.width; let height = img.height;
                 if (width > height) { if (width > MAX_SIZE) { height *= MAX_SIZE / width; width = MAX_SIZE; } } 
                 else { if (height > MAX_SIZE) { width *= MAX_SIZE / height; height = MAX_SIZE; } }
@@ -447,6 +531,5 @@ document.addEventListener("DOMContentLoaded", () => {
         if (settings.theme === 'system') applySettings();
     });
 
-    // Boot Up
     applySettings(); 
 });
