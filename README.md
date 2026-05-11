@@ -13,7 +13,7 @@
 
 <div align="center">
   <img src="images/dash.png" alt="Nova Main Dashboard" width="49%">
-  <img src="assets/sett.png" alt="Nova Sidebar & Settings" width="49%">
+  <img src="images/sett.png" alt="Nova Sidebar & Settings" width="49%">
 </div>
 
 <br/>
