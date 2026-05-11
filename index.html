@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nova</title>
+    <link rel="stylesheet" href="style.css">
+    
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+    <link rel="stylesheet" type="text/css" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/weather-icons/2.0.12/css/weather-icons.min.css">
+</head>
+<body class="preload">
+    <script>
+        try {
+            let initSet = JSON.parse(localStorage.getItem('nova_settings')) || {};
+            if (initSet.sidebarOpen === false) document.body.classList.add('sidebar-collapsed');
+            let initTheme = initSet.theme || 'system';
+            if (initTheme === 'light' || (initTheme === 'system' && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+                document.body.classList.add('light-mode');
+            }
+        } catch(e) {}
+    </script>
+
+    <div id="bgContainer" class="bg-container">
+        <div id="bgOverlay" class="bg-overlay"></div>
+    </div>
+
+    <aside class="sidebar slide-right" id="sidebar">
+        <div class="sidebar-header">
+            <div id="sidebarLogoContainer">
+                <i class="ph-fill ph-planet logo-icon"></i>
+            </div>
+            <div class="logo-text">
+                <h1 id="sidebarLogoText">Nova</h1>
+                <span>Power User</span>
+            </div>
+            <button id="sidebarToggle" class="icon-btn"><i class="ph ph-caret-left"></i></button>
+        </div>
+        <button class="btn-primary" id="newTabBtn"><i class="ph ph-plus"></i> <span class="btn-text">New Tab</span></button>
+        <nav>
+            <button class="nav-link" data-url="chrome://history/"><i class="ph ph-clock-counter-clockwise"></i> <span class="nav-text">History</span></button>
+            <button class="nav-link" data-url="chrome://bookmarks/"><i class="ph ph-bookmarks"></i> <span class="nav-text">Bookmarks</span></button>
+            <button class="nav-link" data-url="chrome://downloads/"><i class="ph ph-download-simple"></i> <span class="nav-text">Downloads</span></button>
+            <button class="nav-link" data-url="chrome://extensions/"><i class="ph ph-puzzle-piece"></i> <span class="nav-text">Extensions</span></button>
+        </nav>
+        <div class="sidebar-footer">
+            <button id="settingsBtn"><i class="ph ph-gear-six"></i> <span class="nav-text">Settings</span></button>
+        </div>
+    </aside>
+
+    <main class="dashboard fade-in">
+        <header class="top-bar slide-down">
+            <div class="greeting-widget bento-item" id="greetingWidget">
+                <h3 id="greetingText">Hello</h3>
+            </div>
+            <div class="widget weather-widget bento-item" id="weatherWidget">
+                <div class="weather-icon">
+                    <i id="weatherIcon" class="wi wi-day-sunny"></i>
+                </div>
+                <div class="weather-info">
+                    <span id="tempDisplay">--°C</span>
+                    <small id="locationDisplay">Loading...</small>
+                </div>
+            </div>
+            <div class="widget time-widget bento-item" id="timeWidget">
+                <h2 id="timeDisplay">--:--</h2>
+                <p id="dateDisplay">--</p>
+            </div>
+        </header>
+
+        <section class="center-stage slide-up">
+            <h1 id="mainLogoText" class="main-logo">Nova</h1>
+            
+            <div class="search-container">
+                <i class="ph ph-magnifying-glass search-icon"></i>
+                <input type="text" id="searchInput" placeholder="Search or enter URL..." autocomplete="off">
+                <div class="search-suggestions" id="searchSuggestions"></div>
+            </div>
+
+            <div class="shortcuts-grid" id="shortcutsContainer"></div>
+        </section>
+    </main>
+
+    <div id="settingsModal" class="modal">
+        <div class="modal-content glass-panel bento-container pop-in">
+            <button class="close-btn" id="closeSettings"><i class="ph ph-x"></i></button>
+            
+            <div class="settings-sidebar">
+                <h2>Settings</h2>
+                <button class="tab-btn active" data-tab="shortcutsTab"><i class="ph ph-link"></i> Shortcuts</button>
+                <button class="tab-btn" data-tab="appearanceTab"><i class="ph ph-palette"></i> Appearance</button>
+                <button class="tab-btn" data-tab="widgetsTab"><i class="ph ph-squares-four"></i> Widgets</button>
+                <button class="tab-btn" data-tab="wallpaperTab"><i class="ph ph-image"></i> Wallpaper</button>
+                <button class="tab-btn" data-tab="generalTab"><i class="ph ph-sliders"></i> General</button>
+                <button class="tab-btn" data-tab="aboutTab"><i class="ph ph-info"></i> About</button>
+            </div>
+
+            <div class="settings-body">
+                <div id="shortcutsTab" class="tab-content active">
+                    <h3>Manage Shortcuts</h3>
+                    <div class="shortcut-manager-list" id="shortcutManagerList"></div>
+                    <hr class="divider">
+                    <h3>Add New Shortcut</h3>
+                    <div class="input-group">
+                        <input type="text" id="newShortcutName" placeholder="Name (e.g., GitHub)">
+                        <input type="url" id="newShortcutUrl" placeholder="URL (e.g., https://github.com)">
+                        <input type="text" id="newShortcutIcon" placeholder="Icon Class (e.g., ph ph-github-logo)">
+                        <button class="btn-primary" id="addShortcutBtn">Add Shortcut</button>
+                    </div>
+                </div>
+
+                <div id="appearanceTab" class="tab-content">
+                    <h3>Theme Mode</h3>
+                    <div class="theme-cards">
+                        <button class="theme-card" data-theme="dark"><i class="ph ph-moon"></i><span>Dark</span></button>
+                        <button class="theme-card" data-theme="light"><i class="ph ph-sun"></i><span>Light</span></button>
+                        <button class="theme-card" data-theme="system"><i class="ph ph-desktop"></i><span>System</span></button>
+                    </div>
+
+                    <h3 style="margin-top: 24px;">Accent Color</h3>
+                    <div class="color-presets">
+                        <div class="color-circle" style="background: #005eff;" data-color="#005eff"></div>
+                        <div class="color-circle" style="background: #34d399;" data-color="#34d399"></div>
+                        <div class="color-circle" style="background: #f43f5e;" data-color="#f43f5e"></div>
+                        <div class="color-circle" style="background: #fbbf24;" data-color="#fbbf24"></div>
+                        <div class="color-circle" style="background: #a78bfa;" data-color="#a78bfa"></div>
+                        <div class="color-picker-wrapper">
+                            <i class="ph ph-eyedropper picker-icon"></i>
+                            <input type="color" id="customColorPicker" title="Custom color">
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin-top: 24px;">Sidebar Behavior</h3>
+                    <div class="toggle-group">
+                        <span>Keep Sidebar Open</span>
+                        <label class="switch"><input type="checkbox" id="sidebarOpenToggle"><span class="slider round"></span></label>
+                    </div>
+                </div>
+
+                <div id="widgetsTab" class="tab-content">
+                    <h3>Dashboard Widgets</h3>
+                    <div class="toggle-group">
+                        <span>Show Greeting Widget</span>
+                        <label class="switch"><input type="checkbox" id="showGreetingToggle"><span class="slider round"></span></label>
+                    </div>
+                    <div class="sub-settings" id="greetingSetupDiv">
+                        <select id="greetingTypeSelect" class="styled-select">
+                            <option value="smart">Smart Weather Greeting</option>
+                            <option value="custom">Custom Text</option>
+                        </select>
+                        <input type="text" id="customGreetingInput" placeholder="e.g., Stay Focused!" style="margin-top:8px;">
+                    </div>
+
+                    <div class="toggle-group" style="margin-top: 16px;">
+                        <span>Show Time Widget</span>
+                        <label class="switch"><input type="checkbox" id="showTimeToggle"><span class="slider round"></span></label>
+                    </div>
+                    <div class="toggle-group">
+                        <span>Use 24-Hour Format</span>
+                        <label class="switch"><input type="checkbox" id="timeFormatToggle"><span class="slider round"></span></label>
+                    </div>
+
+                    <div class="toggle-group" style="margin-top: 16px;">
+                        <span>Show Weather Widget</span>
+                        <label class="switch"><input type="checkbox" id="showWeatherToggle"><span class="slider round"></span></label>
+                    </div>
+                    <div class="sub-settings" id="weatherSetupDiv">
+                        <div class="search-container" style="max-width: 100%;">
+                            <input type="text" id="citySearchInput" placeholder="Search City (e.g., Cairo, Egypt)">
+                            <div class="search-suggestions" id="citySuggestions"></div>
+                        </div>
+                    </div>
+
+                    <h3 style="margin-top: 24px;">Grid Settings</h3>
+                    <div class="toggle-group">
+                        <span>Show "Add Shortcut" Button</span>
+                        <label class="switch"><input type="checkbox" id="showAddBtnToggle"><span class="slider round"></span></label>
+                    </div>
+                    <div class="toggle-group">
+                        <span>Show Shortcut Names</span>
+                        <label class="switch"><input type="checkbox" id="showShortcutNamesToggle"><span class="slider round"></span></label>
+                    </div>
+                </div>
+
+                <div id="wallpaperTab" class="tab-content">
+                    <h3>Wallpaper Settings</h3>
+                    <div class="toggle-group">
+                        <span>Daily Random Landscape</span>
+                        <label class="switch"><input type="checkbox" id="autoWallpaperToggle"><span class="slider round"></span></label>
+                    </div>
+                    <div class="toggle-group" style="margin-top: -12px;">
+                        <span>Random on Every Refresh</span>
+                        <label class="switch"><input type="checkbox" id="refreshWallpaperToggle"><span class="slider round"></span></label>
+                    </div>
+                    <div class="toggle-group" style="margin-top: -12px;">
+                        <span>Blur Wallpaper Effect</span>
+                        <label class="switch"><input type="checkbox" id="blurWallpaperToggle"><span class="slider round"></span></label>
+                    </div>
+                    <hr class="divider">
+                    <h3>Add to Library</h3>
+                    
+                    <div class="modern-upload-container">
+                        <div class="upload-box">
+                            <i class="ph ph-link" style="font-size: 24px; color: var(--accent);"></i>
+                            <input type="url" id="customWallpaperUrl" placeholder="Paste Image URL">
+                            <button class="btn-primary" id="addWallpaperUrlBtn">Add Link</button>
+                        </div>
+                        <div class="upload-divider"><span>OR</span></div>
+                        <div class="upload-box">
+                            <i class="ph ph-image" style="font-size: 24px; color: var(--accent);"></i>
+                            <input type="file" id="localImageUpload" accept="image/*" class="file-input">
+                            <label for="localImageUpload" class="btn-primary file-label" style="margin-bottom:0; width: 100%;">Browse PC</label>
+                        </div>
+                    </div>
+                    <div class="wallpaper-grid" id="wallpaperGallery"></div>
+                </div>
+
+                <div id="generalTab" class="tab-content">
+                    <h3>Project Branding</h3>
+                    <div class="input-group">
+                        <label>Custom App Name</label>
+                        <div style="display:flex; gap: 8px;">
+                            <input type="text" id="brandNameInput" placeholder="e.g., Nova" style="flex:1;">
+                            <button class="btn-primary" id="randomNameBtn" style="margin:0;"><i class="ph ph-dice-three"></i> Random</button>
+                        </div>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Custom Logo (Class, URL, or Upload)</label>
+                        <div style="display:flex; gap: 8px;">
+                            <input type="text" id="brandLogoInput" placeholder="e.g., ph-fill ph-planet" style="flex:1;">
+                            
+                            <input type="file" id="logoImageUpload" accept="image/*" class="file-input">
+                            <label for="logoImageUpload" class="btn-primary" style="margin:0; padding: 12px; cursor: pointer; display: flex; align-items: center;" title="Upload Logo Image">
+                                <i class="ph ph-upload-simple" style="font-size: 18px;"></i>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <hr class="divider">
+                    <h3>Danger Zone</h3>
+                    <button class="btn-danger" id="resetBtn"><i class="ph ph-warning"></i> Reset All Extension Data</button>
+                </div>
+
+                <div id="aboutTab" class="tab-content">
+                    <div class="about-container">
+                        <div id="aboutLogoContainer"></div>
+                        <h2 id="aboutTitleName" style="font-size: 32px; margin-top: 10px;">Nova</h2>
+                        <span style="color: var(--accent); font-weight: 600; letter-spacing: 1px;">POWER TAB V6.2</span>
+                        <p style="text-align: center; color: var(--text-muted); margin-top: 16px; line-height: 1.6; max-width: 400px;">
+                            The ultimate customizable, responsive, and blazing fast glassmorphic new tab experience. Fully personalized to your workflow.
+                        </p>
+                        <a href="https://github.com" target="_blank" class="btn-primary" style="margin-top: 24px; text-decoration: none;">
+                            <i class="fa-brands fa-github"></i> View Source on GitHub
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

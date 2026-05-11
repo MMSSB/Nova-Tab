@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Nova Power Tab",
+  "version": "1.0.0",
+  "description": "The ultimate customizable, responsive, glassmorphic new tab experience.",
+  "chrome_url_overrides": {
+    "newtab": "index.html"
+  },
+  "permissions": [
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "*://duckduckgo.com/*",
+    "*://api.open-meteo.com/*",
+    "*://geocoding-api.open-meteo.com/*",
+    "*://bmcdn.nl/*"
+  ],
+  "icons": {
+    "128": "icon.png"
+  }
+}
